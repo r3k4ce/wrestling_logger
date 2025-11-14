@@ -33,5 +33,5 @@ Successful completion prints the new Doc ID + URL.
 ## References
 - [Drive API `files().create()`](https://developers.google.com/workspace/drive/api/v3/reference/files/create)
 - [Docs API `documents.batchUpdate`](https://developers.google.com/workspace/docs/api/how-tos/move-text)
-- [Drive quickstart OAuth Option B](https://developers.google.com/workspace/drive/api/quickstart/python)
+- [Drive quickstart OAuth](https://developers.google.com/workspace/drive/api/quickstart/python)
 - [`yt-dlp` README](https://github.com/yt-dlp/yt-dlp)
