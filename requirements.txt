@@ -4,3 +4,4 @@ google-auth-oauthlib==1.2.1
 google-auth-httplib2==0.2.0
 requests==2.32.3
 yt-dlp==2024.10.22
+openai>=1.0.0

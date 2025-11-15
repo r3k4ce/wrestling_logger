@@ -26,6 +26,10 @@ The script:
 
 Successful completion prints the new Doc ID + URL.
 
+### Optional AI formatting (GPT-5-nano)
+- If you have an OpenAI API key set in `OPENAI_API_KEY`, the script can optionally reformat the generated document using the `gpt-5-nano` model. The formatting step is optional and preserves the text content exactly — only spacing, headings, and list structure are adjusted. The AI prompt enforces that no words should be added, removed, or altered.
+- To use this feature, set `OPENAI_API_KEY` and confirm the prompt when the script asks whether to apply AI formatting.
+
 ### Transcript cookies
 - Set `YTDLP_COOKIES_FILE=/abs/path/to/cookies.txt` to let `yt-dlp` read a Netscape cookies export (useful for age/region/member-restricted videos).
 - Or set `YTDLP_COOKIES_FROM_BROWSER=chrome` (any shorthand supported by `yt-dlp`) to import cookies directly from a local browser profile.
