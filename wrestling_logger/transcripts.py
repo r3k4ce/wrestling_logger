@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 from contextlib import closing
@@ -11,9 +12,9 @@ from typing import List
 from yt_dlp import YoutubeDL
 from yt_dlp.utils import DownloadError
 
-DEFAULT_TRANSCRIPT_LANGUAGES = ["en", "en-US"]
-COOKIES_FILE_ENV = "YTDLP_COOKIES_FILE"
-COOKIES_BROWSER_ENV = "YTDLP_COOKIES_FROM_BROWSER"
+from . import config
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -34,24 +35,24 @@ def fetch_transcripts(video_ids: List[str], languages: List[str] | None = None) 
     ydl = YoutubeDL(ydl_options)
 
     results: List[TranscriptResult] = []
-    print(f"\nFetching {len(video_ids)} transcripts...")
+    logger.info(f"Fetching {len(video_ids)} transcripts...")
     for video_id in video_ids:
         try:
             text = _fetch_single_transcript(ydl, video_id, preferred_languages)
             results.append(TranscriptResult(video_id=video_id, success=True, text=text))
-            print(f"   > Transcript for '{video_id}' FOUND.")
+            logger.info(f"   > Transcript for '{video_id}' FOUND.")
         except TranscriptLookupError as exc:
             err = str(exc)
             results.append(TranscriptResult(video_id=video_id, success=False, error=err))
-            print(f"   > Transcript for '{video_id}' FAILED: {err}.")
+            logger.warning(f"   > Transcript for '{video_id}' FAILED: {err}.")
         except DownloadError as exc:
             err = f"yt-dlp error: {exc}"
             results.append(TranscriptResult(video_id=video_id, success=False, error=err))
-            print(f"   > Transcript for '{video_id}' FAILED: {err}.")
+            logger.error(f"   > Transcript for '{video_id}' FAILED: {err}.")
         except Exception as exc:  # noqa: BLE001
             err = f"Unexpected error: {exc}"
             results.append(TranscriptResult(video_id=video_id, success=False, error=err))
-            print(f"   > Transcript for '{video_id}' FAILED: {err}.")
+            logger.error(f"   > Transcript for '{video_id}' FAILED: {err}.")
     return results
 
 
@@ -69,12 +70,12 @@ def _fetch_single_transcript(ydl: YoutubeDL, video_id: str, languages: List[str]
 
 def _normalize_languages(languages: List[str] | None) -> List[str]:
     provided = languages or []
-    ordered = _dedupe_preserve_order(provided + DEFAULT_TRANSCRIPT_LANGUAGES)
-    return ordered or DEFAULT_TRANSCRIPT_LANGUAGES.copy()
+    ordered = _dedupe_preserve_order(provided + config.DEFAULT_TRANSCRIPT_LANGUAGES)
+    return ordered or config.DEFAULT_TRANSCRIPT_LANGUAGES.copy()
 
 
 def _build_ytdlp_options(languages: List[str]) -> dict:
-    subtitle_langs = _dedupe_preserve_order(languages + DEFAULT_TRANSCRIPT_LANGUAGES)
+    subtitle_langs = _dedupe_preserve_order(languages + config.DEFAULT_TRANSCRIPT_LANGUAGES)
     options: dict = {
         "quiet": True,
         "no_warnings": True,
@@ -86,8 +87,8 @@ def _build_ytdlp_options(languages: List[str]) -> dict:
         "cachedir": False,
     }
 
-    cookies_file = os.getenv(COOKIES_FILE_ENV)
-    cookies_browser = os.getenv(COOKIES_BROWSER_ENV)
+    cookies_file = os.getenv(config.COOKIES_FILE_ENV)
+    cookies_browser = os.getenv(config.COOKIES_BROWSER_ENV)
     if cookies_file:
         options["cookiefile"] = cookies_file
     elif cookies_browser:

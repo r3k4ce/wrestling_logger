@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 from dataclasses import dataclass
@@ -13,14 +14,10 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+from . import config
 from .transcripts import TranscriptResult
 
-SCOPES = [
-    "https://www.googleapis.com/auth/drive.file",
-    "https://www.googleapis.com/auth/documents",
-]
-CREDENTIALS_FILE = "credentials.json"
-TOKEN_FILE = "token.json"
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -72,19 +69,21 @@ def build_document_body(
 
 def get_credentials() -> Credentials:
     creds: Credentials | None = None
-    if os.path.exists(TOKEN_FILE):
-        creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
+    if os.path.exists(config.TOKEN_FILE):
+        creds = Credentials.from_authorized_user_file(config.TOKEN_FILE, config.SCOPES)
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
+            logger.info("Refreshing expired credentials...")
             creds.refresh(Request())
         else:
-            if not os.path.exists(CREDENTIALS_FILE):
+            if not os.path.exists(config.CREDENTIALS_FILE):
                 raise FileNotFoundError(
                     "Missing credentials.json. Follow the Drive/Docs quickstart to download it."
                 )
-            flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
+            logger.info("Starting OAuth flow...")
+            flow = InstalledAppFlow.from_client_secrets_file(config.CREDENTIALS_FILE, config.SCOPES)
             creds = flow.run_local_server(port=0)
-        with open(TOKEN_FILE, "w", encoding="utf-8") as token:
+        with open(config.TOKEN_FILE, "w", encoding="utf-8") as token:
             token.write(creds.to_json())
     return creds
 

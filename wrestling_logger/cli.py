@@ -1,10 +1,12 @@
 """Interactive CLI for building wrestling show documents."""
 from __future__ import annotations
 
+import logging
 import sys
 from datetime import datetime
 from typing import List
 
+from . import config
 from .ai_format import format_document_with_ai
 from .doc import (
     ShowMetadata,
@@ -15,6 +17,8 @@ from .doc import (
     write_doc_content,
 )
 from .transcripts import fetch_transcripts
+
+logger = logging.getLogger(__name__)
 
 
 def prompt_metadata() -> ShowMetadata:
@@ -72,6 +76,7 @@ def prompt_video_ids() -> List[str]:
 
 
 def main() -> None:
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     print("Starting the wrestling logger...")
     print("This script will build your Master Doc.\n")
     metadata = prompt_metadata()
@@ -89,12 +94,12 @@ def main() -> None:
     successes = sum(1 for result in transcript_results if result.success)
     print(f" - Transcript successes: {successes}/{len(transcript_results)}")
     print("\n## STEP 5: BUILDING DOCUMENT")
-    print("Authenticating with Google...")
+    logger.info("Authenticating with Google...")
     creds = get_credentials()
-    print("Creating new Google Doc...")
+    logger.info("Creating new Google Doc...")
     doc_id = create_google_doc(metadata.doc_title, creds)
-    print(f"... New Doc ID: {doc_id}")
-    print("Writing sections to doc...")
+    logger.info(f"... New Doc ID: {doc_id}")
+    logger.info("Writing sections to doc...")
     use_ai = False
     try:
         use_ai = _prompt_yes_no("Would you like to format this document with OpenAI (gpt-5-nano)? (y/N): ")
@@ -103,22 +108,22 @@ def main() -> None:
 
     if use_ai:
         try:
-            print("Formatting document with AI...")
-            doc_body = format_document_with_ai(doc_body, model="gpt-5-nano")
-            print("AI formatting applied successfully.")
+            logger.info("Formatting document with AI...")
+            doc_body = format_document_with_ai(doc_body, model=config.OPENAI_MODEL)
+            logger.info("AI formatting applied successfully.")
         except Exception as exc:  # noqa: BLE001
-            print(f"AI formatting failed: {exc}")
-            print("Continuing with unformatted document.")
+            logger.error(f"AI formatting failed: {exc}")
+            logger.info("Continuing with unformatted document.")
     try:
         write_doc_content(doc_id, doc_body, creds)
     except RuntimeError as exc:
-        print(f"Writing failed: {exc}")
-        print("Cleaning up the placeholder doc...")
+        logger.error(f"Writing failed: {exc}")
+        logger.info("Cleaning up the placeholder doc...")
         try:
             delete_google_doc(doc_id, creds)
-            print("Placeholder doc removed.")
+            logger.info("Placeholder doc removed.")
         except Exception:  # noqa: BLE001
-            print("Warning: Unable to remove the placeholder doc; please delete it manually.")
+            logger.warning("Unable to remove the placeholder doc; please delete it manually.")
         raise
     print("... Success!\n")
     print("Your new document is ready in your Google Drive.")
